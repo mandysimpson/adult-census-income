@@ -1,0 +1,27 @@
+---
+title: "ACIProject"
+author: "Mandy Simpson"
+date: "18/10/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Predicting income from census data
+
+## Introduction
+
+The project is part of the HarvardX Profeessional Certificate in Data Science Course, PH:125.9x - Capstone.
+
+For the self-directoed project I chose to explore the Adult Census Income dataset from UCI which can be found at <https://www.kaggle.com/uciml/adult-census-income>.  This dataset includes an indicator column showing whether the individual described by that entry earned under or over $50k.
+
+I started by exploring the full dataset to ensure I understood the information contained. While the data was broadly clean, I removed some rows with missing data, and stratified the data in areas such as age, and education level. 
+
+Once this was complete, I split the dataset into training and validation sets (90%/10%), and then split the training set further into training and test sets (80%/20%), to allow a number of algorithms to be trialled on this data before selecting one for use on the validation set. 
+
+#Exploring the Adult Census Income dataset
+
+
+

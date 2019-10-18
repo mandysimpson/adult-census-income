@@ -1,8 +1,13 @@
 library(tidyverse)
 library(caret)
+library(dplyr)
 
 
 adult_census_income <- read.csv("adult.csv")
+
+dim(adult_census_income)
+
+
 
 
 set.seed(1,sample.kind = "Rounding")

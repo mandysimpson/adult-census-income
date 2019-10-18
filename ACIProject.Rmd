@@ -15,13 +15,40 @@ knitr::opts_chunk$set(echo = TRUE)
 
 The project is part of the HarvardX Profeessional Certificate in Data Science Course, PH:125.9x - Capstone.
 
-For the self-directoed project I chose to explore the Adult Census Income dataset from UCI which can be found at <https://www.kaggle.com/uciml/adult-census-income>.  This dataset includes an indicator column showing whether the individual described by that entry earned under or over $50k.
+For the self-directoed project I chose to explore the Adult Census Income dataset ("ACI") from University of California at Irvine, which can be found at <https://www.kaggle.com/uciml/adult-census-income>.  This dataset was originally derived from the US Census Bureau 1994 database.  It includes an indicator column showing whether the individual described by that entry earned under or over $50k. It is this indicator that I am seeking to predict using the other information in the dataset. 
 
-I started by exploring the full dataset to ensure I understood the information contained. While the data was broadly clean, I removed some rows with missing data, and stratified the data in areas such as age, and education level. 
+I started the project by exploring the full dataset to ensure I understood the information contained. While the data was already broadly clean, and in tidy format, I removed some rows with missing data, and stratified the data in areas such as age, and education level. 
 
 Once this was complete, I split the dataset into training and validation sets (90%/10%), and then split the training set further into training and test sets (80%/20%), to allow a number of algorithms to be trialled on this data before selecting one for use on the validation set. 
 
-#Exploring the Adult Census Income dataset
+#Downloading and exploring the Adult Census Income dataset
+
+Code for downloading!!
+```{r download, message=FALSE, warning=FALSE}
+adult_census_income <- read.csv("adult.csv")
+```
+
+The ACI dataset as downloaded has `r nrow(adult_census_income)` observations each representing an individual person in the census. 
+
+There are `r ncol(adult_census_income) attributes as follows:
+
+Name               | Type                | Description                               |
+-------------------|---------------------|-------------------------------------------|
+age                | Integer             | Age of respondent                         |
+workclass          | Factor (9 levels)   | Employer type                             |
+fnlwgt             | Integer             | Population weighting factor               |
+education          | Factor (16 levels)  | Highest education level achieved          |
+education.num      | Integer             | Numerical representation of education     |
+marital.status     | Factor (7 levels)   | Marital Status of respondent              |
+occupation         | Factor (15 levels)  | Type of employment                        |
+relationship       | Factor (6 levels)   | Position in household                     |
+race               | Factor (5 levels)   | Race of respondent                        |
+sex                | Factor (2 levels)   | Sex of respondent                         |
+capital.gain       | Integer             | Investment gains                          |
+capital.loss       | Integer             | Investment losses                         |
+hours.per.week     | Integer             | Working hours                             |
+native.country     | Factor (42 levels)  | Country of birth                          |
+income             | Factor (2 levels)   | Income under or over $50k                 |
 
 
 

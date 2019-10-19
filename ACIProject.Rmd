@@ -250,13 +250,41 @@ training <- training[-test_index2, ]
 
 The training set now has `r nrow(training)` observations.
 
-I start with a k-nearest neighbours model. I'm not sure what value of k to use so I use the cross-validation built into the caret package on the range 15 to 39. I use steps of 4 to reduce the time taken to run the cross-validation. 
+## k Nearest Neighbours
+
+I start with a k-nearest neighbours model. I'm not sure what value of k to use so I use the cross-validation built into the caret package on the range 4 to 41. I reduce the default to 10-fold cross validation to reduce the time taken to run. 
 
 ```{r knn_selecting_k, message=FALSE, warning=FALSE}
 set.seed(3,sample.kind = "Rounding")
 #if using R3.5 or earlier set.seed(3)
 
-train_knn <- train(income ~ ., method = "knn", data = training, tuneGrid = data.frame(k = seq(15,39,4)))
+control <- trainControl(method = "cv", number = 10, p = .9)
+train_knn <- train(income ~ ., method = "knn", data = training, tuneGrid = data.frame(k = seq(5,41,2)), trControl = control)
 ggplot(train_knn,highlight = TRUE)
+train_knn$bestTune
 ```
 
+I then use this model to make predictions on the testing dataset
+
+```{r knn_predict, message=FALSE, warning=FALSE}
+confusionMatrix(predict(train_knn, testing, type = "raw"), testing$income)$overall["Accuracy"]
+```
+
+The accuracy is over 80% on the testing set. 
+
+## Random Forest
+
+I considered using Quadratic Discriminant Analysis or Linear Discriminant Analysis, but discarded these approaches due to the number or predictors and the fact that most do not appear normally distributed. Instead I settle on trying a Random Forest algorithm as the second approach. 
+
+
+
+
+
+
+# Conclusion
+
+I used the Adult Census Income dataset from UCI to predict income levels as being under or over 50k. Using a Random Forest algorithm I achieved an accuracy level on a randomly selected validation set of xxxxxxx.
+
+Prior to selecting this algorithm I also tested a k nearest neighbours algorithm, achieving an accuracy rate on a reserved (for testing) part of the training set of xxxxxx.  It is possible that further accuracy could be achieved by using an ensemble approach of the kNN and Random Forest algorithms. 
+
+It is also worth considering the possible limitations of this as a predictive algorithm for use outside the Adult Census Income data. The chosen dataset differs to the US population in a number of respects. Notably it has more men, more white people, and fewer immigrants than the standard population, which is currently approximately 51% female, 40% non-white and approximately 28% immigrant (includes US born children). 

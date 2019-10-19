@@ -9,7 +9,10 @@ nrows(adult_census_income)
 ncols(adult_census_income)
 
 #drop rows with ? in the data
-aci <- filter(adult_census_income, !workclass == "?", !occupation == "?", !native.country == "?")
+aci <- filter(adult_census_income, 
+              !workclass == "?", 
+              !occupation == "?", 
+              !native.country == "?")
 aci <- droplevels(aci)
 
 #plot fnlwgt against income
@@ -46,7 +49,30 @@ aci %>% ggplot(aes(hours.per.week, y = ..count.., fill = income)) + geom_histogr
 
 set.seed(1,sample.kind = "Rounding")
 #if using R3.5 or earlier set.seed(1)
-
 test_index <- createDataPartition(aci$income, times = 1, p = 0.2, list = FALSE)
 validation <- aci[test_index, ]
 training <- aci[-test_index, ]
+
+#splitting the dataset again for testing
+set.seed(10,sample.kind = "Rounding")
+#if using R3.5 or earlier set.seed(10)
+
+test_index2 <- createDataPartition(training$income, times = 1, p = 0.2, list = FALSE)
+testing <- training[test_index2, ]
+training <- training[-test_index2, ]
+
+#knn algorithm
+
+set.seed(3,sample.kind = "Rounding")
+#if using R3.5 or earlier set.seed(3)
+control <- trainControl(method = "cv", number = 10, p = .9)
+train_knn <- train(income ~ ., 
+                   method = "knn", 
+                   data = training, 
+                   tuneGrid = data.frame(k = seq(5,41,2)), 
+                   trControl = control)
+ggplot(train_knn,highlight = TRUE)
+train_knn$bestTune
+
+confusionMatrix(predict(train_knn, testing, type = "raw"), 
+                testing$income)$overall["Accuracy"]

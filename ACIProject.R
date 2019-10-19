@@ -5,7 +5,23 @@ library(dplyr)
 
 adult_census_income <- read.csv("adult.csv")
 
-dim(adult_census_income)
+nrows(adult_census_income)
+ncols(adult_census_income)
+
+#drop rows with ? in the data
+aci <- filter(adult_census_income, !workclass == "?", !occupation == "?", !native.country == "?")
+aci <- droplevels(aci)
+
+#plot fnlwgt against income
+aci %>% ggplot(aes(income,fnlwgt)) + geom_boxplot()
+
+#drop fnlwgt and education.num
+aci <- aci %>% select(-c(fnlwgt,education.num))
+
+#drop capital.gain, capital.loss and native.country
+nearZeroVar(aci)
+aci <- aci %>% select(-c(capital.gain, capital.loss, native.country))
+
 
 
 

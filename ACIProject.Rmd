@@ -21,16 +21,23 @@ I started the project by exploring the full dataset to ensure I understood the i
 
 Once this was complete, I split the dataset into training and validation sets (90%/10%), and then split the training set further into training and test sets (80%/20%), to allow a number of algorithms to be trialled on this data before selecting one for use on the validation set. 
 
-#Downloading and preprocessing the Adult Census Income dataset
+# Downloading and preprocessing the Adult Census Income dataset
 
-Code for downloading!!
+The file can be downloaded from github at <https://github.com/mandysimpson/adult-census-income/raw/master/adult.csv>
+
 ```{r download, message=FALSE, warning=FALSE}
-adult_census_income <- read.csv("adult.csv")
+#install packages
+if(!require(tidyverse)) install.packages("tidyverse", repos = "http://cran.us.r-project.org")
+if(!require(caret)) install.packages("caret", repos = "http://cran.us.r-project.org")
+if(!require(dplyr)) install.packages("dplyr", repos = "http://cran.us.r-project.org")
+
+#download file
+adult_census_income <- read.csv("https://github.com/mandysimpson/adult-census-income/raw/master/adult.csv")
 ```
 
 The ACI dataset as downloaded has `r nrow(adult_census_income)` observations each representing an individual person in the census. 
 
-There are `r ncol(adult_census_income) attributes as follows:
+There are `r ncol(adult_census_income)` attributes as follows:
 
 Name               | Type                | Description                               |
 -------------------|---------------------|-------------------------------------------|
@@ -58,7 +65,7 @@ aci <- droplevels(aci)
 ```
 This removes `r nrow(adult_census_income) - nrow(aci)` rows, leaving `r nrow(aci)`. 
 
-For observations remaining in the dataset, `r round(mean(aci$income == ">50K" * 100),2)`% indicate an income of over 50k.
+For observations remaining in the dataset, `r round(mean(aci$income == ">50K") * 100,2)`% indicate an income of over 50k.
 
 ## Deleting unnecessary attributes
 
@@ -79,7 +86,8 @@ I next ran the `nearZeroVar` function of the `caret` package to understand which
 ```{r nearzero}
 nzv <- nearZeroVar(aci)
 ```
-The function recomends the removal of the `capital.gain`, `capital.loss` and `native.country` attributes. On inspection we can see that `r round((aci$capital.gain == 0)*100,2)`% of the `capital.gain` values and `r round((aci$capital.loss == 0)*100,2)`% of the `capital.loss` values are actually 0, and that `r round((aci$native.country == "United-States)*100,2)`% of the `native.country` values are "United-States".
+
+The function recomends the removal of the `capital.gain`, `capital.loss` and `native.country` attributes. On inspection we can see that `r round(mean(aci$capital.gain == 0)*100,2)`% of the `capital.gain` values and `r round(mean(aci$capital.loss == 0)*100,2)`% of the `capital.loss` values are actually 0, and that `r round(mean(aci$native.country == "United-States")*100,2)`% of the `native.country` values are "United-States".
 
 I therefore removed these attributes from the dataset.
 ```{r remove_capital_gain_loss_native_country}
@@ -88,15 +96,16 @@ aci <- aci %>% select(-c(capital.gain,capital.loss,native.country))
 
 We're left with 9 predictors for the income attribute.
 
-#Visualising the data
+# Visualising the data
 
-##Age
+## Age
 
 I created a density plot showing the count of age range split by income.
 
 ```{r plot_age, echo=FALSE, message=FALSE, warning=FALSE}
 aci %>% ggplot(aes(age, y = ..count.., fill = income)) + geom_density(alpha = 0.6)
 ```
+
 We can see significant differences in the data. While there is no age at which the proportion earning over 50k increases above 50%, the proportion does increase with age. For under 25's the proportion is just 1.19% while for those between 45-49 it is 39.49%.
 
 ##Workclass 
@@ -109,29 +118,29 @@ aci %>% ggplot(aes(workclass, fill = income)) + geom_bar()
 
 The workclass "Private" is by far the biggest, making up `r round(mean(aci$workclass == "Private")*100,2)`% of the total. 
 
-Drawing this bar graph again by percentage shows that the `Self-emp-inc` group has a greater than 50% proportion over 50k - 55.87%
+Drawing this bar graph again by proportion shows that greater than 50% of the `Self-emp-inc` group has income over 50k - in fact this is 55.87%
 
 ```{r plot_workclass_perc, echo=FALSE, message=FALSE, warning=FALSE}
-aci %>% ggplot(aes(workclass, fill = income)) + geom_bar(position = "fill") + labs(y = "percent")
+aci %>% ggplot(aes(workclass, fill = income)) + geom_bar(position = "fill") + labs(y = "proportion")
 ```
 
-##Education
+## Education
 
-For the education attribute I used a bar graph showing the split of each education level by income, in this case using percentage straight away. 
+For the education attribute I used a bar graph showing the split of each education level by income, in this case using proportion view straight away. 
 
 ```{r plot_education_num, echo=FALSE, message=FALSE, warning=FALSE}
-aci %>% ggplot(aes(education.num, y = ..count.., fill = income)) + geom_bar(position = "fill") + labs(y = "percent")
+aci %>% ggplot(aes(education.num, y = ..count.., fill = income)) + geom_bar(position = "fill") + labs(y = "proportion")
 ```
 
 Unsurprisingly as education levels increase so does the proportion of people earning over 50k.
 
 
-##Marital Status
+## Marital Status
 
 For this attribute I again used a bar graph showing the split by income. 
 
 ```{r plot_marital, echo=FALSE, message=FALSE, warning=FALSE}
-aci %>% ggplot(aes(marital.status, fill = income)) + geom_bar(position = "fill") + labs(y = "percent") + scale_x_discrete(labels = abbreviate)
+aci %>% ggplot(aes(marital.status, fill = income)) + geom_bar(position = "fill") + labs(y = "proportion") + scale_x_discrete(labels = abbreviate)
 ```
 
 What we seem to see here is a strong difference in the proportions of higher incomes for someone who is married (with their spouse present):
@@ -147,22 +156,71 @@ Never-married          |  4.83      |
 Separated              |  7.03      |
 Widowed                |  9.67      |
 
-I wonder whether this might be different for each sex:
+I wondered whether this might be different for each sex:
 
 ```{r plot_marital_v_sex, echo=FALSE, message=FALSE, warning=FALSE}
-aci %>% ggplot(aes(marital.status, fill = income)) + geom_bar(position = "fill") + labs(y = "percent") + scale_x_discrete(labels = abbreviate) + facet_grid(sex ~ .)
+aci %>% ggplot(aes(marital.status, fill = income)) + geom_bar(position = "fill") + labs(y = "proportion") + scale_x_discrete(labels = abbreviate) + facet_grid(sex ~ .)
 ```
 
-What we see is that the proportion of female respondents earning more than 50k is even more clearly delineated across the categories with spouse present and those without. 
+They appear broadly similar, although What we do see is that the proportion of female respondents earning more than 50k is even more clearly delineated across the categories with spouse present and those without. 
 
 ## Occupation
 
-Again I plotted this on a percetnage bar graph by income
+Again I plotted this on a proportion basis by income
 
 ```{r plot_occupation, echo=FALSE, message=FALSE, warning=FALSE}
-aci %>% ggplot(aes(occupation, fill = income)) + geom_bar(position = "fill") + labs(y = "percent") + scale_x_discrete(labels = abbreviate)
+aci %>% ggplot(aes(occupation, fill = income)) + geom_bar(position = "fill") + labs(y = "proportion") + scale_x_discrete(labels = abbreviate)
 ```
+
 There is a lot of variance across these, with the highest being "Exec-managerial" and "Prof-specialty".
 
 ## Relationship
+
+I wasn't sure from the documentation of this dataset, what connection (if any) there is between `relationship`, `marital.status` and `sex`.
+
+```{r plot_relationship, echo=FALSE, message=FALSE, warning=FALSE}
+aci %>% ggplot(aes(relationship, fill = income)) + geom_bar(position = "fill") + labs(y = "proportion") + scale_x_discrete(labels = abbreviate)
+```
+
+Here it seems that the `relationship` attribute is repeating the information we gained from the `marital.status` attribute, at least for those describing themselves as "Husband" or "Wife" - these are 100% contained in the Married-AF-spouse and "Married-civ-spouse" categories.
+
+```{r explore_wife_husband, warning=FALSE, message=FALSE}
+aci %>% filter(relationship == "Wife" | relationship == "Husband") %>% group_by(marital.status) %>% summarise(count = n())
+```
+
+Given the similarity of these I decided to remove this attribute as well. 
+
+```{r remove_relationship, warning=FALSE, message=FALSE}
+aci <- aci %>% select(-relationship)
+```
+
+## Race
+
+`r round(mean(aci$race == "White")*100,2)`% of the dataset is "White". The bar chart shows the proportions by income. 
+
+```{r plot_race, echo=FALSE, message=FALSE, warning=FALSE}
+aci %>% ggplot(aes(race, fill = income)) + geom_bar(position = "fill") + labs(y = "proportion")
+```
+
+There is a significant difference between the income proportion of "White" or "Asian-Pac_Islander" at roughly 25% over 50k and all other races at around half that level. 
+
+## Sex
+
+`r round(mean(aci$sex == "Male")*100,2)`% of the dataset is "Male". The bar chart again shows the proportions by income. 
+
+```{r plot_sex, echo=FALSE, message=FALSE, warning=FALSE}
+aci %>% ggplot(aes(sex, fill = income)) + geom_bar(position = "fill") + labs(y = "proportion")
+```
+
+Again there is a noticeable difference in income level between sexes with the proportion of "Male" respondents earning over 50k at 31.38%, with "Female" respondents only 11.37%.
+
+## Hours per week
+
+I used a histogram to plot the hours per week data, to allow for the fact that most of the responses are rounded to the nearest 5 hours. 
+
+```{r plot_hours_per_week, echo=FALSE, message=FALSE, warning=FALSE}
+aci %>% ggplot(aes(hours.per.week, y = ..count.., fill = income)) + geom_histogram(binwidth = 5, position = "fill") + labs(y = "proportion")
+```
+
+As we might expect the proportion of those earning over 50k rises significantly at around 40-50 hours per week, representing the cultural norm of fulltime work. Interestingly it doesn't rise further, as hours continue to go up, and in fact appears to fall slightly.
 

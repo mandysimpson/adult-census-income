@@ -15,12 +15,33 @@ aci <- droplevels(aci)
 #plot fnlwgt against income
 aci %>% ggplot(aes(income,fnlwgt)) + geom_boxplot()
 
-#drop fnlwgt and education.num
-aci <- aci %>% select(-c(fnlwgt,education.num))
+#drop fnlwgt and education
+aci <- aci %>% select(-c(fnlwgt,education))
 
 #drop capital.gain, capital.loss and native.country
 nearZeroVar(aci)
 aci <- aci %>% select(-c(capital.gain, capital.loss, native.country))
+
+#plots and other exploration for each attribute
+aci %>% ggplot(aes(age, y = ..count.., fill = income)) + geom_density(alpha = 0.6)
+aci %>% ggplot(aes(workclass, fill = income)) + geom_bar()
+aci %>% ggplot(aes(workclass, fill = income)) + geom_bar(position = "fill") + labs(y = "proportion")
+aci %>% ggplot(aes(education.num, y = ..count.., fill = income)) + geom_bar(position = "fill") + labs(y = "proportion")
+aci %>% ggplot(aes(marital.status, fill = income)) + geom_bar(position = "fill") + labs(y = "proportion") + scale_x_discrete(labels = abbreviate)
+aci %>% ggplot(aes(marital.status, fill = income)) + geom_bar(position = "fill") + labs(y = "proportion") + scale_x_discrete(labels = abbreviate) + facet_grid(sex ~ .)
+aci %>% ggplot(aes(occupation, fill = income)) + geom_bar(position = "fill") + labs(y = "proportion") + scale_x_discrete(labels = abbreviate)
+aci %>% ggplot(aes(relationship, fill = income)) + geom_bar(position = "fill") + labs(y = "proportion") + scale_x_discrete(labels = abbreviate)
+aci %>% filter(relationship == "Wife" | relationship == "Husband") %>% group_by(marital.status) %>% summarise(count = n())
+
+#remove relationship attribute
+aci <- aci %>% select(-relationship)
+
+#plots and other exploration for each attribute
+aci %>% ggplot(aes(race, fill = income)) + geom_bar(position = "fill") + labs(y = "proportion")
+aci %>% ggplot(aes(sex, fill = income)) + geom_bar(position = "fill") + labs(y = "proportion")
+
+
+
 
 
 

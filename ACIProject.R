@@ -39,15 +39,14 @@ aci <- aci %>% select(-relationship)
 #plots and other exploration for each attribute
 aci %>% ggplot(aes(race, fill = income)) + geom_bar(position = "fill") + labs(y = "proportion")
 aci %>% ggplot(aes(sex, fill = income)) + geom_bar(position = "fill") + labs(y = "proportion")
+aci %>% ggplot(aes(hours.per.week, y = ..count.., fill = income)) + geom_histogram(binwidth = 5, position = "fill") + labs(y = "proportion")
 
 
-
-
-
-
-
+#splitting the dataset for validation and training
 
 set.seed(1,sample.kind = "Rounding")
-test_index <- createDataPartition(adult_census_income$income, times = 1, p = 0.2, list = FALSE)
-test_set <- adult_census_income[test_index, ]
-train_set <- adult_census_income[-test_index, ]
+#if using R3.5 or earlier set.seed(1)
+
+test_index <- createDataPartition(aci$income, times = 1, p = 0.2, list = FALSE)
+validation <- aci[test_index, ]
+training <- aci[-test_index, ]

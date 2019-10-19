@@ -35,7 +35,7 @@ if(!require(dplyr)) install.packages("dplyr", repos = "http://cran.us.r-project.
 adult_census_income <- read.csv("https://github.com/mandysimpson/adult-census-income/raw/master/adult.csv")
 ```
 
-The ACI dataset as downloaded has `r nrow(adult_census_income)` observations each representing an individual person in the census. 
+The ACI dataset has `r nrow(adult_census_income)` observations each representing an individual person in the census. 
 
 There are `r ncol(adult_census_income)` attributes as follows:
 
@@ -223,4 +223,40 @@ aci %>% ggplot(aes(hours.per.week, y = ..count.., fill = income)) + geom_histogr
 ```
 
 As we might expect the proportion of those earning over 50k rises significantly at around 40-50 hours per week, representing the cultural norm of fulltime work. Interestingly it doesn't rise further, as hours continue to go up, and in fact appears to fall slightly.
+
+# Analysis
+
+Firstly I split the dataset (which is now `r nrow(aci)` observations) into training and validation sets. 
+
+```{r split_validation, message=FALSE, warning=FALSE}
+set.seed(1,sample.kind = "Rounding")
+#if using R3.5 or earlier set.seed(1)
+
+test_index <- createDataPartition(aci$income, times = 1, p = 0.2, list = FALSE)
+validation <- aci[test_index, ]
+training <- aci[-test_index, ]
+```
+
+To enable me to try out a number of different approaches before settling on a final algorithm I also split the training set into training and test. 
+
+```{r split_testing, message=FALSE, warning=FALSE}
+set.seed(10,sample.kind = "Rounding")
+#if using R3.5 or earlier set.seed(10)
+
+test_index2 <- createDataPartition(training$income, times = 1, p = 0.2, list = FALSE)
+testing <- training[test_index2, ]
+training <- training[-test_index2, ]
+```
+
+The training set now has `r nrow(training)` observations.
+
+I start with a k-nearest neighbours model. I'm not sure what value of k to use so I use the cross-validation built into the caret package on the range 15 to 39. I use steps of 4 to reduce the time taken to run the cross-validation. 
+
+```{r knn_selecting_k, message=FALSE, warning=FALSE}
+set.seed(3,sample.kind = "Rounding")
+#if using R3.5 or earlier set.seed(3)
+
+train_knn <- train(income ~ ., method = "knn", data = training, tuneGrid = data.frame(k = seq(15,39,4)))
+ggplot(train_knn,highlight = TRUE)
+```
 

@@ -31,8 +31,8 @@ aci <- aci %>% select(-c(capital.gain, capital.loss, native.country))
 
 #plots and other exploration for each attribute
 aci %>% ggplot(aes(age, y = ..count.., fill = income)) + geom_density(alpha = 0.6)
-aci %>% ggplot(aes(workclass, fill = income)) + geom_bar()
-aci %>% ggplot(aes(workclass, fill = income)) + geom_bar(position = "fill") + labs(y = "proportion")
+aci %>% ggplot(aes(workclass, fill = income)) + geom_bar() + scale_x_discrete(labels = abbreviate)
+aci %>% ggplot(aes(workclass, fill = income)) + geom_bar(position = "fill") + labs(y = "proportion") + scale_x_discrete(labels = abbreviate)
 aci %>% ggplot(aes(education.num, y = ..count.., fill = income)) + geom_bar(position = "fill") + labs(y = "proportion")
 aci %>% ggplot(aes(marital.status, fill = income)) + geom_bar(position = "fill") + labs(y = "proportion") + scale_x_discrete(labels = abbreviate)
 aci %>% ggplot(aes(marital.status, fill = income)) + geom_bar(position = "fill") + labs(y = "proportion") + scale_x_discrete(labels = abbreviate) + facet_grid(sex ~ .)
@@ -52,7 +52,7 @@ aci %>% ggplot(aes(hours.per.week, y = ..count.., fill = income)) + geom_histogr
 #splitting the dataset for validation and training
 set.seed(1,sample.kind = "Rounding")  #if using R3.5 or earlier set.seed(1)
 test_index <- createDataPartition(aci$income, times = 1, p = 0.2, list = FALSE)
-validation <- aci[test_index, ]
+aci_validation <- aci[test_index, ]
 aci_training <- aci[-test_index, ]
 
 #splitting the dataset again for testing
@@ -71,21 +71,30 @@ train_knn <- train(income ~ .,
                    trControl = control)
 ggplot(train_knn,highlight = TRUE)
 train_knn$bestTune
-confusionMatrix(predict(train_knn, testing, type = "raw"), 
+knn_accuracy <- confusionMatrix(predict(train_knn, testing, type = "raw"), 
                 testing$income)$overall["Accuracy"]
+knn_accuracy
 
 #classification tree algorithm
 set.seed(3,sample.kind = "Rounding")  #if using R3.5 or earlier set.seed(3)
 train_rpart <- train(income ~ ., method = "rpart", tuneGrid = data.frame(cp = seq(0.0, 0.1, len=25)), data = training)
 plot(train_rpart)
 train_rpart$bestTune
-confusionMatrix(predict(train_rpart, testing), testing$income)$overall["Accuracy"]
+rpart_accuracy <- confusionMatrix(predict(train_rpart, testing), testing$income)$overall["Accuracy"]
+rpart_accuracy
 plot(train_rpart$finalModel, margin = 0.1)
 text(train_rpart$finalModel, cex = 0.75)
 
 #random forest algorithm
 set.seed(3,sample.kind = "Rounding")  #if using R3.5 or earlier set.seed(3)
 train_rf <- randomForest(income ~ ., data = training)
-confusionMatrix(predict(train_rf, testing), testing$income)$overall["Accuracy"]
+rf_accuracy <- confusionMatrix(predict(train_rf, testing), testing$income)$overall["Accuracy"]
+rf_accuracy
 importance(train_rf)
 
+#final algorithm and validation
+set.seed(3, sample.kind = "Rounding") #if using R3.5 or earlier set.seed(3)
+final_train_rf <- randomForest(income ~ ., data = aci_training)
+final_accuracy <- confusionMatrix(predict(final_train_rf, aci_validation), aci_validation$income)$overall["Accuracy"]
+final_accuracy
+importance(final_train_rf)

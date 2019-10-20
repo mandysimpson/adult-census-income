@@ -245,9 +245,7 @@ aci_training <- aci[-test_index, ]
 To enable me to try out a number of different approaches before settling on a final algorithm I also split the `aci_training` set into training and test. 
 
 ```{r split_testing, message=FALSE, warning=FALSE}
-set.seed(10,sample.kind = "Rounding")
-#if using R3.5 or earlier set.seed(10)
-
+set.seed(10,sample.kind = "Rounding")  #if using R3.5 or earlier set.seed(10)
 test_index2 <- createDataPartition(aci_training$income, times = 1, p = 0.2, list = FALSE)
 testing <- aci_training[test_index2, ]
 training <- aci_training[-test_index2, ]
@@ -260,9 +258,7 @@ The training set now has `r nrow(training)` observations.
 I start with a k-nearest neighbours model. I'm not sure what value of k to use so I use the cross-validation built into the caret package on the range 4 to 41. I reduce the default to 10-fold cross validation to reduce the time taken to run. 
 
 ```{r knn_selecting_k, message=FALSE, warning=FALSE}
-set.seed(3,sample.kind = "Rounding")
-#if using R3.5 or earlier set.seed(3)
-
+set.seed(3,sample.kind = "Rounding") #if using R3.5 or earlier set.seed(3)
 control <- trainControl(method = "cv", number = 10, p = .9)
 train_knn <- train(income ~ ., method = "knn", data = training, tuneGrid = data.frame(k = seq(5,41,2)), trControl = control)
 ggplot(train_knn,highlight = TRUE)
@@ -272,19 +268,18 @@ train_knn$bestTune
 I then use this model to make predictions on the testing dataset.
 
 ```{r knn_predict, message=FALSE, warning=FALSE}
-confusionMatrix(predict(train_knn, testing, type = "raw"), testing$income)$overall["Accuracy"]
+knn_accuracy <- confusionMatrix(predict(train_knn, testing, type = "raw"), testing$income)$overall["Accuracy"]
+knn_accuracy
 ```
 
-The accuracy is over 80% on the testing set. 
+The accuracy is `r round(knn_accuracy*100,2)`% on the testing set. 
 
 ## Classification Tree
 
 I considered using Quadratic Discriminant Analysis or Linear Discriminant Analysis, but discarded these approaches due to the number of predictors and the fact that most do not appear normally distributed. Instead I settle on trying a classification tree as the second approach, using cross-validation to select the complexity parameter.
 
 ```{r rpart_selecting_cp, message=FALSE, warning=FALSE}
-set.seed(3,sample.kind = "Rounding")
-#if using R3.5 or earlier set.seed(3)
-
+set.seed(3,sample.kind = "Rounding") #if using R3.5 or earlier set.seed(3)
 train_rpart <- train(income ~ ., method = "rpart", tuneGrid = data.frame(cp = seq(0.0, 0.1, len=25)), data = training)
 plot(train_rpart)
 train_rpart$bestTune
@@ -293,10 +288,11 @@ train_rpart$bestTune
 Again I use this model to make predictions on the testing dataset.
 
 ```{r rpart_predict, message=FALSE, warning=FALSE}
-confusionMatrix(predict(train_rpart, testing), testing$income)$overall["Accuracy"]
+rpart_accuracy <- confusionMatrix(predict(train_rpart, testing), testing$income)$overall["Accuracy"]
+rpart_accuracy
 ```
 
-The accuracy is higher than for the kNN algorithm - now over 82%
+The accuracy is higher than for the kNN algorithm - now `r round(rpart_accuracy*100,2)`%
 it is also interesting to be able to see the key decision points. As expected marital status plays a key role, with anyone who is not "Married-civ-spouse" predicted to have income of 50k or less. 
   
 ```{r plot_classification_tree, echo=FALSE, message=FALSE, warning=FALSE}
@@ -312,10 +308,13 @@ My final approach is a random forest algorithm.
 set.seed(3, sample.kind = "Rounding")
 #if using R3.5 or earlier set.seed(3)
 train_rf <- randomForest(income ~ ., data = training)
-confusionMatrix(predict(train_rf, testing), testing$income)$overall["Accuracy"]
+rf_accuracy <- confusionMatrix(predict(train_rf, testing), testing$income)$overall["Accuracy"]
+rf_accuracy
 ```
 
-The accuracy is improved again, now to over 84%. While we cannot plot the tree in the same way as for the classification tree above, it is still possible to see the importance of each variable, measured by the Mean Decrease in Gini.
+The accuracy is improved again, now to `r round(rf_accuracy*100,2)`%. 
+
+While we cannot plot the tree in the same way as for the classification tree above, it is still possible to see the importance of each variable, measured by the Mean Decrease in Gini.
 
 ```{r random_forest_importance, message=FALSE, warning=FALSE}
 importance(train_rf)
@@ -323,11 +322,24 @@ importance(train_rf)
 
 As expected, `marital.status` remains the most important, followed by `age`, `education.num` and `occupation`.
 
+# Validation and Results
+
+I have selected the random forest algorithm from the ones tested above to try on the validation set. I trained the algorithm again, now using the entire aci_training set avaiable to me, and then used this to predict the income results on the aci_validation set.
+
+```{r final_random_forest_predict, message=FALSE, warning=FALSE}
+set.seed(3, sample.kind = "Rounding") #if using R3.5 or earlier set.seed(3)
+final_train_rf <- randomForest(income ~ ., data = aci_training)
+final_accuracy <- confusionMatrix(predict(final_train_rf, aci_validation), aci_validation$income)$overall["Accuracy"]
+final_accuracy
+importance(final_train_rf)
+```
+
+The accuracy remains similar to that achieved during the testing phase, with the final model achieving `r round(final_accuracy*100,2)`% accuracy on the validation dataset. The importance factors remain the same, with `marital.status`, `age`, `education.num` and `occupation` being the key factors in predicting income level. 
 
 # Conclusion
 
-I used the Adult Census Income dataset from UCI to predict income levels as being under or over 50k. Using a Random Forest algorithm I achieved an accuracy level on a randomly selected validation set of xxxxxxx.
+I used the Adult Census Income dataset from UCI to predict income levels as being under or over 50k. Using a Random Forest algorithm I achieved an accuracy level on a randomly selected validation set of `r round(final_accuracy*100,2)`%.
 
-Prior to selecting this algorithm I also tested a k nearest neighbours algorithm, achieving an accuracy rate on a reserved (for testing) part of the training set of xxxxxx.  It is possible that further accuracy could be achieved by using an ensemble approach of the kNN and Random Forest algorithms. 
+Prior to selecting this algorithm I also tested a k-nearest neighbours algorithm, achieving an accuracy rate on a reserved (for testing) part of the training set of `r round(knn_accuracy*100,2)`%, and using a Classification Tree, achieving an accuracy of `r round(rpart_accuracy*100,2)`%.  It is possible therefore that further accuracy could be achieved by using an ensemble approach of the kNN, Classification Tree and Random Forest algorithms. 
 
-It is also worth considering the possible limitations of this as a predictive algorithm for use outside the Adult Census Income data. The chosen dataset differs to the US population in a number of respects. Notably it has more men, more white people, and fewer immigrants than the standard population, which is currently approximately 51% female, 40% non-white and approximately 28% immigrant (includes US born children). 
+It is also worth considering the possible limitations of this as a predictive algorithm for use outside the Adult Census Income data. The chosen dataset differs to the US population in a number of respects. Notably it has more men, more white people, and fewer immigrants than the standard population, which is currently approximately 51% female, 40% non-white and approximately 28% immigrant (includes US born children).  It is also now 25 years old.  All of this would cause concern if using the algorithm to create predictions on current populations. 

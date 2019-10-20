@@ -2,7 +2,7 @@
 title: "ACIProject"
 author: "Mandy Simpson"
 date: "18/10/2019"
-output: html_document
+output: pdf_document
 ---
 
 ```{r setup, include=FALSE}
@@ -15,11 +15,13 @@ knitr::opts_chunk$set(echo = TRUE)
 
 The project is part of the HarvardX Profeessional Certificate in Data Science Course, PH:125.9x - Capstone.
 
-For the self-directoed project I chose to explore the Adult Census Income dataset ("ACI") from University of California at Irvine, which can be found at <https://www.kaggle.com/uciml/adult-census-income>.  This dataset was originally derived from the US Census Bureau 1994 database.  It includes an indicator column showing whether the individual described by that entry earned under or over $50k. It is this indicator that I am seeking to predict using the other information in the dataset. 
+For the self-directed project I chose to explore the Adult Census Income dataset ("ACI") from University of California at Irvine, which can be found at <https://www.kaggle.com/uciml/adult-census-income>.  This dataset was originally derived from the US Census Bureau 1994 database.  It includes an indicator column showing whether the individual described by that entry earned under or over $50k. It is this indicator that I am seeking to predict using the other information in the dataset. 
 
-I started the project by exploring the full dataset to ensure I understood the information contained. While the data was already broadly clean, and in tidy format, I removed some rows with missing data, and stratified the data in areas such as age, and education level. 
+I started the project by exploring the full dataset to ensure I understood the information contained. While the data was already broadly clean, and in tidy format, I removed some rows with missing data, and some unproductive attributes. 
 
-Once this was complete, I split the dataset into training and validation sets (90%/10%), and then split the training set further into training and test sets (80%/20%), to allow a number of algorithms to be trialled on this data before selecting one for use on the validation set. 
+Once this was complete, I split the dataset into training and validation sets (80%/20%), and then split the training set further into training and test sets (also 80%/20%), to allow a number of algorithms to be trialled on this data before selecting one for use on the validation set. 
+
+I tried the k-nearest neighbours, classification tree and random forest algorithms, before settling on the random forest algorithm for use on the validation set. 
 
 # Downloading and preprocessing the Adult Census Income dataset
 
@@ -85,8 +87,9 @@ aci <- aci %>% select(-c(fnlwgt,education))
 
 I next ran the `nearZeroVar` function of the `caret` package to understand which attributes could be removed due to minimal variance. 
 
-```{r nearzero}
+```{r nearzero, warning=FALSE, message=FALSE}
 nzv <- nearZeroVar(aci)
+nzv
 ```
 
 The function recomends the removal of the `capital.gain`, `capital.loss` and `native.country` attributes. On inspection we can see that `r round(mean(aci$capital.gain == 0)*100,2)`% of the `capital.gain` values and `r round(mean(aci$capital.loss == 0)*100,2)`% of the `capital.loss` values are actually 0, and that `r round(mean(aci$native.country == "United-States")*100,2)`% of the `native.country` values are "United-States".
@@ -110,12 +113,12 @@ aci %>% ggplot(aes(age, y = ..count.., fill = income)) + geom_density(alpha = 0.
 
 We can see significant differences in the data. While there is no age at which the proportion earning over 50k increases above 50%, the proportion does increase with age. For under 25's the proportion is just 1.19% while for those between 45-49 it is 39.49%.
 
-##Workclass 
+## Workclass 
 
 For the workclass attribute I used a bar graph showing the split of each workclass factor by income. 
 
 ```{r plot_workclass, echo=FALSE, message=FALSE, warning=FALSE}
-aci %>% ggplot(aes(workclass, fill = income)) + geom_bar()
+aci %>% ggplot(aes(workclass, fill = income)) + geom_bar() + scale_x_discrete(labels = abbreviate)
 ```
 
 The workclass "Private" is by far the biggest, making up `r round(mean(aci$workclass == "Private")*100,2)`% of the total. 
@@ -123,7 +126,7 @@ The workclass "Private" is by far the biggest, making up `r round(mean(aci$workc
 Drawing this bar graph again by proportion shows that greater than 50% of the `Self-emp-inc` group has income over 50k - in fact this is 55.87%
 
 ```{r plot_workclass_perc, echo=FALSE, message=FALSE, warning=FALSE}
-aci %>% ggplot(aes(workclass, fill = income)) + geom_bar(position = "fill") + labs(y = "proportion")
+aci %>% ggplot(aes(workclass, fill = income)) + geom_bar(position = "fill") + labs(y = "proportion") + scale_x_discrete(labels = abbreviate)
 ```
 
 ## Education
@@ -164,7 +167,7 @@ I wondered whether this might be different for each sex:
 aci %>% ggplot(aes(marital.status, fill = income)) + geom_bar(position = "fill") + labs(y = "proportion") + scale_x_discrete(labels = abbreviate) + facet_grid(sex ~ .)
 ```
 
-They appear broadly similar, although What we do see is that the proportion of female respondents earning more than 50k is even more clearly delineated across the categories with spouse present and those without. 
+They appear broadly similar, although what we do see is that the proportion of female respondents earning more than 50k is even more clearly delineated across the categories with spouse present and those without. 
 
 ## Occupation
 
@@ -276,7 +279,7 @@ The accuracy is over 80% on the testing set.
 
 ## Classification Tree
 
-I considered using Quadratic Discriminant Analysis or Linear Discriminant Analysis, but discarded these approaches due to the number or predictors and the fact that most do not appear normally distributed. Instead I settle on trying a classification tree as the second approach, using cross-validation to select the complexity parameter.
+I considered using Quadratic Discriminant Analysis or Linear Discriminant Analysis, but discarded these approaches due to the number of predictors and the fact that most do not appear normally distributed. Instead I settle on trying a classification tree as the second approach, using cross-validation to select the complexity parameter.
 
 ```{r rpart_selecting_cp, message=FALSE, warning=FALSE}
 set.seed(3,sample.kind = "Rounding")

@@ -30,6 +30,8 @@ The file can be downloaded from github at <https://github.com/mandysimpson/adult
 if(!require(tidyverse)) install.packages("tidyverse", repos = "http://cran.us.r-project.org")
 if(!require(caret)) install.packages("caret", repos = "http://cran.us.r-project.org")
 if(!require(dplyr)) install.packages("dplyr", repos = "http://cran.us.r-project.org")
+if(!require(rpart)) install.packages("rpart", repos = "http://cran.us.r-project.org")
+if(!require(randomForest)) install.packages("randomForest", repos = "http://cran.us.r-project.org")
 
 #download file
 adult_census_income <- read.csv("https://github.com/mandysimpson/adult-census-income/raw/master/adult.csv")
@@ -233,19 +235,19 @@ set.seed(1,sample.kind = "Rounding")
 #if using R3.5 or earlier set.seed(1)
 
 test_index <- createDataPartition(aci$income, times = 1, p = 0.2, list = FALSE)
-validation <- aci[test_index, ]
-training <- aci[-test_index, ]
+aci_validation <- aci[test_index, ]
+aci_training <- aci[-test_index, ]
 ```
 
-To enable me to try out a number of different approaches before settling on a final algorithm I also split the training set into training and test. 
+To enable me to try out a number of different approaches before settling on a final algorithm I also split the `aci_training` set into training and test. 
 
 ```{r split_testing, message=FALSE, warning=FALSE}
 set.seed(10,sample.kind = "Rounding")
 #if using R3.5 or earlier set.seed(10)
 
-test_index2 <- createDataPartition(training$income, times = 1, p = 0.2, list = FALSE)
-testing <- training[test_index2, ]
-training <- training[-test_index2, ]
+test_index2 <- createDataPartition(aci_training$income, times = 1, p = 0.2, list = FALSE)
+testing <- aci_training[test_index2, ]
+training <- aci_training[-test_index2, ]
 ```
 
 The training set now has `r nrow(training)` observations.
@@ -264,7 +266,7 @@ ggplot(train_knn,highlight = TRUE)
 train_knn$bestTune
 ```
 
-I then use this model to make predictions on the testing dataset
+I then use this model to make predictions on the testing dataset.
 
 ```{r knn_predict, message=FALSE, warning=FALSE}
 confusionMatrix(predict(train_knn, testing, type = "raw"), testing$income)$overall["Accuracy"]
@@ -272,13 +274,51 @@ confusionMatrix(predict(train_knn, testing, type = "raw"), testing$income)$overa
 
 The accuracy is over 80% on the testing set. 
 
+## Classification Tree
+
+I considered using Quadratic Discriminant Analysis or Linear Discriminant Analysis, but discarded these approaches due to the number or predictors and the fact that most do not appear normally distributed. Instead I settle on trying a classification tree as the second approach, using cross-validation to select the complexity parameter.
+
+```{r rpart_selecting_cp, message=FALSE, warning=FALSE}
+set.seed(3,sample.kind = "Rounding")
+#if using R3.5 or earlier set.seed(3)
+
+train_rpart <- train(income ~ ., method = "rpart", tuneGrid = data.frame(cp = seq(0.0, 0.1, len=25)), data = training)
+plot(train_rpart)
+train_rpart$bestTune
+```
+
+Again I use this model to make predictions on the testing dataset.
+
+```{r rpart_predict, message=FALSE, warning=FALSE}
+confusionMatrix(predict(train_rpart, testing), testing$income)$overall["Accuracy"]
+```
+
+The accuracy is higher than for the kNN algorithm - now over 82%
+it is also interesting to be able to see the key decision points. As expected marital status plays a key role, with anyone who is not "Married-civ-spouse" predicted to have income of 50k or less. 
+  
+```{r plot_classification_tree, echo=FALSE, message=FALSE, warning=FALSE}
+plot(train_rpart$finalModel, margin = 0.1)
+text(train_rpart$finalModel, cex = 0.75)
+```
+
 ## Random Forest
 
-I considered using Quadratic Discriminant Analysis or Linear Discriminant Analysis, but discarded these approaches due to the number or predictors and the fact that most do not appear normally distributed. Instead I settle on trying a Random Forest algorithm as the second approach. 
+My final approach is a random forest algorithm. 
 
+```{r random_forest_predict, message=FALSE, warning=FALSE}
+set.seed(3, sample.kind = "Rounding")
+#if using R3.5 or earlier set.seed(3)
+train_rf <- randomForest(income ~ ., data = training)
+confusionMatrix(predict(train_rf, testing), testing$income)$overall["Accuracy"]
+```
 
+The accuracy is improved again, now to over 84%. While we cannot plot the tree in the same way as for the classification tree above, it is still possible to see the importance of each variable, measured by the Mean Decrease in Gini.
 
+```{r random_forest_importance, message=FALSE, warning=FALSE}
+importance(train_rf)
+```
 
+As expected, `marital.status` remains the most important, followed by `age`, `education.num` and `occupation`.
 
 
 # Conclusion
